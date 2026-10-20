@@ -1,58 +1,111 @@
-# writerresearcher
+# Autonomous Multi-Agent Research & Synthesis Workflow
 
-Welcome to your new [Mastra](https://mastra.ai) project! We're excited to see what you build.
+[![Framework: Mastra](https://img.shields.io/badge/Framework-Mastra-8A2BE2.svg)](https://mastra.ai/)
+[![APIs: Tavily_&_Wikipedia](https://img.shields.io/badge/APIs-Tavily_%26_Wikipedia-4285F4.svg)](https://tavily.com/)
+[![Language: JavaScript](https://img.shields.io/badge/Language-JavaScript-F7DF1E.svg)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
 
-This starter provides you with a general-purpose Mastra agent that can research current information, manage multi-step tasks, work with local files, run approved shell commands, and create recurring schedules.
 
-## Features
+A deterministic, 2-stage automated research and writing system built on the **Mastra framework**. The architecture uses modular agent skills to dynamically route retrieval operations across Wikipedia and Tavily, passing aggregated research notes downstream to a context-aware writer agent that adapts its output format based on whether the entity is human.
 
-- A local `workspace/` for files and command execution (created under `src/mastra/public/workspace/` when running `mastra dev`)
-- Approval gates for file changes, deletions, and shell commands
-- Conversation memory, generated thread titles, and task tracking
-- Built-in web search and direct web page fetching
-- Recurring schedules that persist across restarts
-- Local libSQL storage and DuckDB observability, with optional Turso storage
-- A bundled Mastra skill that helps coding agents use current Mastra APIs
+---
 
-## Get started
+> [!NOTE]
+> ### TL;DR
+> * **What it is:** A Node.js backend research pipeline generating structured profiles and articles from natural language prompts.
+> * **How it works:** Dynamically routes queries to Wikipedia (for people) or Tavily (for general topics), then formats the aggregated notes into either executive briefs or long-form paragraphs.
+> * **Architecture:** A 2-step sequential workflow coordinating 2 agents, 4 skills, and 2 external tools.
+> * **Tech Stack:** Mastra, Node.js, TypeScript, Tavily API, Wikipedia API.
 
-Set your `OPENAI_API_KEY` in `.env` or in your environment, then run:
+---
 
-```shell
-npm run dev
+## Architecture Overview
+
+The system executes a strictly partitioned, 2-phase pipeline that isolates live information retrieval from output synthesis:
+
+```mermaid
+flowchart TD
+    A([User Research Topic]) --> B[Step 1 <br/>Information Retrieval: <br/><i>researchStep</i>]
+    
+    B --> C[researcherAgent]
+    
+    C -->|Subject: Person| D1[peopleBioSkill]
+    C -->|Subject: General Topic| D2[generalResearchSkill]
+    
+    D1 --> T1[searchWikipediaTool <br/><i>Wikipedia API</i>]
+    D2 --> T2[searchGeneralSourceTool <br/><i>Tavily API</i>]
+    
+    T1 --> E[(Aggregated Research Notes)]
+    T2 --> E
+    
+    E -->|Structured Context Payload| F[Step 2 <br/>Content Synthesis: <br/><i>writerStep</i>]
+    
+    F --> G[writerAgent]
+    
+    G -->|Target: Human| H1[executiveBriefSkill <br/><i>Structured Bullet Points</i>]
+    G -->|Target: Non-Human / Topic| H2[blogFormatSkill <br/><i>Expository Paragraphs</i>]
+    
+    H1 --> I([Final Formatted Deliverable])
+    H2 --> I
+
+    classDef stepNode fill:#1e3a8a,stroke:#42568d,stroke-width:1.5px,color:#eff6ff;
+    classDef ioNode   fill:#3c66d8,stroke:#6082df,stroke-width:1.5px,color:#eff6ff;
+    classDef toolNode fill:#0f172a,stroke:#202632,stroke-width:1.5px,color:#eff6ff;
+    classDef skillNode fill:#03206d,stroke:#20356f,stroke-width:2px,color:#eff6ff;
+
+    class B,F stepNode;
+    class A,I ioNode;
+    class T1,T2 toolNode;
+    class D1,D2,H1,H2 skillNode;
 ```
 
-Open [http://localhost:4111](http://localhost:4111) in your browser to access [Mastra Studio](https://mastra.ai/docs/studio/overview).
+---
 
-Select **Agent** in Mastra Studio and try one of these prompts:
+## Pipeline Workflow Details
 
-- `Get the weather forecast for Austin this weekend.`
-- `Create a landing page for a Japanese sakura festival.`
-- `Check the SPCX stock price now, then check it every minute.`
+### 1. `researchStep` (Retrieval Phase)
+* **Agent**: `researcherAgent`
+* **Objective**: Analyzes the input prompt, selects the appropriate retrieval strategy based on entity classification, and collects contextual notes.
+* **Skills & Tool Integrations**:
+  * `peopleBioSkill`: Invoked when the target subject is an individual. Delegates retrieval to `searchWikipediaTool` to extract biographical milestones, career trajectory, and historical facts from Wikipedia.
+  * `generalResearchSkill`: Invoked for concepts, technologies, events, or non-human entities. Delegates to `searchGeneralSourceTool` to perform web searches and extract real-time data via the Tavily API.
+* **Handoff**: Synthesizes query results into an intermediate, unformatted `Research Notes` buffer passed downstream.
 
-The agent asks for approval before it changes files or runs commands. When it creates a schedule, it returns an ID that you can use to pause the schedule.
+### 2. `writerStep` (Synthesis & Formatting Phase)
+* **Agent**: `writerAgent`
+* **Objective**: Converts raw research notes into a finalized document matched to the subject's entity type.
+* **Skills & Output Rules**:
+  * `executiveBriefSkill`: Activated strictly for human subjects. Formats findings into a concise, scannable executive brief composed of structured bullet points.
+  * `blogFormatSkill`: Activated strictly for non-human subjects and general topics. Synthesizes findings into continuous, expository long-form paragraphs suitable for an article or blog post.
 
-## Workspace safety
+---
 
-The local filesystem tools stay inside the `workspace/` directory, which resolves relative to the server's working directory (`src/mastra/public/workspace/` during `mastra dev`). Shell commands start in that directory, but `LocalSandbox` does not provide operating-system isolation by default. Review command approvals carefully, and do not expose this template through an unauthenticated public server.
+## Agent Skills & Tools Reference
 
-## Storage
+The system modularizes operational capabilities using Mastra agent skills and tool bindings:
 
-The default `file:./mastra.db` database stores agent memory, tasks, and schedules locally. To use Turso, set `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` in `.env`.
+### 1. Retrieval Layer
+* `searchWikipediaTool`: Handles direct querying against the Wikipedia API, extracting clean text summaries and biographic details.
+* `searchGeneralSourceTool`: Interfaces with Tavily Search API to execute web-scale queries and parse relevant external web context.
 
-Recurring schedules continue to use model tokens until you pause them. Ask the agent to pause a schedule with the ID returned by `start_schedule`.
+### 2. Operational Skills
+* `peopleBioSkill`: Encapsulates entity recognition logic for human targets and coordinates Wikipedia search workflows.
+* `generalResearchSkill`: Encapsulates web retrieval heuristics and relevance scoring for non-person topics.
+* `executiveBriefSkill`: Prompt-engineered skill enforcing structured, bullet-driven executive summaries for profiles.
+* `blogFormatSkill`: Content generation skill enforcing cohesive narrative structure and paragraph formatting for informational topics.
 
-## Making it yours
+---
 
-- Edit `src/mastra/agents/agent.ts` to change the model, instructions, memory, workspace, or approval policy.
-- Edit `src/mastra/tools/` to customize scheduling.
-- Edit `src/mastra/index.ts` to change storage and observability.
-- Add files or reusable skills under `src/mastra/public/workspace/` for the agent to use during `mastra dev`.
+## Quickstart
 
-## Learn more
+```bash
+# 1. Clone repository
+git clone [https://github.com/your-username/mastra-research-writer-workflow.git](https://github.com/your-username/mastra-research-writer-workflow.git)
+cd mastra-research-writer-workflow
 
-To learn more about Mastra, visit our [documentation](https://mastra.ai/docs/). If you're new to AI agents, check out our [course](https://mastra.ai/learn) and [YouTube videos](https://youtube.com/@mastra-ai). You can also join our [Discord](https://discord.gg/mastra-ai) community to get help and share your projects.
+# 2. Install dependencies
+npm install
 
-## Deploy to the Mastra platform
+# 3. Add your environment credentials in .env (TAVILY_API_KEY + LLM API keys)
 
-The [Mastra platform](https://projects.mastra.ai) provides two products for deploying and managing AI applications built with the Mastra framework. Learn more in the [Mastra platform documentation](https://mastra.ai/docs/mastra-platform/overview).
+# 4. Start the Mastra development server
+npm run dev

@@ -22,11 +22,12 @@
     "@mastra/libsql": "1.25.1",
     "@mastra/memory": "1.36.0",
     "@mastra/observability": "1.18.4",
+    "@openrouter/agent": "^0.11.0",
+    "@tavily/core": "^0.7.14",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "latest",
-    "mastra": "1.33.0",
-    "typescript": "^6.0.3"
+    "mastra": "1.33.0"
   }
 }
