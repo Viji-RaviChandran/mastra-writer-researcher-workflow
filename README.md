@@ -24,6 +24,7 @@ The system executes a strictly partitioned, 2-phase pipeline that isolates live 
 
 ```mermaid
 flowchart TD
+    flowchart TD
     A([User Research Topic]) --> B[Step 1 <br/>Information Retrieval: <br/><i>researchStep</i>]
     
     B --> C[researcherAgent]
@@ -34,15 +35,13 @@ flowchart TD
     D1 --> T1[searchWikipediaTool <br/><i>Wikipedia API</i>]
     D2 --> T2[searchGeneralSourceTool <br/><i>Tavily API</i>]
     
-    T1 --> E[(Aggregated Research Notes)]
-    T2 --> E
-    
-    E -->|Structured Context Payload| F[Step 2 <br/>Content Synthesis: <br/><i>writerStep</i>]
+    T1 -->| Research notes | F[Step 2 <br/>Content Synthesis: <br/><i>writerStep</i>]
+    T2 -->| Research notes | F
     
     F --> G[writerAgent]
     
-    G -->|Target: Human| H1[executiveBriefSkill <br/><i>Structured Bullet Points</i>]
-    G -->|Target: Non-Human / Topic| H2[blogFormatSkill <br/><i>Expository Paragraphs</i>]
+    G -->| Subject: Person | H1[executiveBriefSkill <br/><i>Structured Bullet Points</i>]
+    G -->| Subject: General Topic | H2[blogFormatSkill <br/><i>Expository Paragraphs</i>]
     
     H1 --> I([Final Formatted Deliverable])
     H2 --> I
@@ -109,3 +108,7 @@ npm install
 
 # 4. Start the Mastra development server
 npm run dev
+```
+---
+
+Core workflow logic, tools, and agents reside inside src/mastra/
