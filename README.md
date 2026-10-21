@@ -5,16 +5,16 @@
 [![Language: JavaScript](https://img.shields.io/badge/Language-JavaScript-F7DF1E.svg)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
 
 
-A deterministic, 2-stage automated research and writing system built on the **Mastra framework**. The architecture uses modular agent skills to dynamically route retrieval operations across Wikipedia and Tavily, passing aggregated research notes downstream to a context-aware writer agent that adapts its output format based on whether the entity is human.
+A deterministic, 2-stage automated research and writing system built on the **Mastra framework**. The architecture uses modular agent skills to dynamically route retrieval operations across Wikipedia and Tavily, passing research notes downstream to a context-aware writer agent that adapts its output format based on whether the entity is human.
 
 ---
 
 > [!NOTE]
 > ### TL;DR
 > * **What it is:** A Node.js backend research pipeline generating structured profiles and articles from natural language prompts.
-> * **How it works:** Dynamically routes queries to Wikipedia (for people) or Tavily (for general topics), then formats the aggregated notes into either executive briefs or long-form paragraphs.
+> * **How it works:** Dynamically routes queries to Wikipedia (for people) or Tavily (for general topics), then formats the research notes into either executive briefs or long-form paragraphs.
 > * **Architecture:** A 2-step sequential workflow coordinating 2 agents, 4 skills, and 2 external tools.
-> * **Tech Stack:** Mastra, Node.js, TypeScript, Tavily API, Wikipedia API.
+> * **Tech Stack:** Mastra, Node.js, JavaScript, Tavily API, Wikipedia API.
 
 ---
 
@@ -24,7 +24,6 @@ The system executes a strictly partitioned, 2-phase pipeline that isolates live 
 
 ```mermaid
 flowchart TD
-    flowchart TD
     A([User Research Topic]) --> B[Step 1 <br/>Information Retrieval: <br/><i>researchStep</i>]
     
     B --> C[researcherAgent]
@@ -66,7 +65,7 @@ flowchart TD
 * **Objective**: Analyzes the input prompt, selects the appropriate retrieval strategy based on entity classification, and collects contextual notes.
 * **Skills & Tool Integrations**:
   * `peopleBioSkill`: Invoked when the target subject is an individual. Delegates retrieval to `searchWikipediaTool` to extract biographical milestones, career trajectory, and historical facts from Wikipedia.
-  * `generalResearchSkill`: Invoked for concepts, technologies, events, or non-human entities. Delegates to `searchGeneralSourceTool` to perform web searches and extract real-time data via the Tavily API.
+  * `generalResearchSkill`: Invoked for concepts, technologies, events, or non-human entities. Delegates to `searchGeneralSourceTool` to perform web searches and extract data via the Tavily API.
 * **Handoff**: Synthesizes query results into an intermediate, unformatted `Research Notes` buffer passed downstream.
 
 ### 2. `writerStep` (Synthesis & Formatting Phase)
